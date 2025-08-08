@@ -1,0 +1,4 @@
+- Complete the first uncompleted task in improvements.md
+- If the improvement involves a code change that introduces a feature or fixes a bug, use TDD. If it's just changing the implementation and is covered by a test, we don't need a new test
+- When finished, remove the task from the improvements file
+- All tests must pass after the improvement is made

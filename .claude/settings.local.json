@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(mkdir:*)",
+      "Bash(./advent-of-code-2024:*)",
+      "Bash(go test:*)",
+      "Bash(ls)",
+      "Bash(go fmt:*)",
+      "Bash(just test:*)",
+      "Bash(just check)",
+      "Bash(just build)",
+      "Bash(just run-part:*)"
+    ],
+    "deny": []
+  }
+}
