@@ -244,4 +244,3 @@ func TestSolvePart2WithExampleFile(t *testing.T) {
 		t.Errorf("Part2 logic = %d, expected %d", sum, expected)
 	}
 }
-

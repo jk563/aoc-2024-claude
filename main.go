@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"advent-of-code-2024/internal/day01"
@@ -12,6 +13,7 @@ import (
 	"advent-of-code-2024/internal/day03"
 	"advent-of-code-2024/internal/day04"
 	"advent-of-code-2024/internal/day05"
+	"advent-of-code-2024/internal/day06"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,6 +25,14 @@ const (
 	MinPart = 1
 	MaxPart = 2
 )
+
+type PuzzleResult struct {
+	Day      int
+	Part     int
+	Result   int
+	Duration time.Duration
+	Error    error
+}
 
 func main() {
 	var day = flag.Int("day", 0, fmt.Sprintf("Run specific day (%d-%d)", MinDay, MaxDay))
@@ -51,16 +61,72 @@ func main() {
 
 	start := time.Now()
 
+	var results []PuzzleResult
+
 	if *day != 0 && *part != 0 {
-		runSpecificDayPart(*day, *part, *debug)
+		results = runSpecificDayPart(*day, *part, *debug)
 	} else if *day != 0 {
-		runSpecificDay(*day, *debug)
+		results = runSpecificDay(*day, *debug)
 	} else {
-		runAllDays(*debug)
+		results = runAllDays(*debug)
 	}
 
 	elapsed := time.Since(start)
-	fmt.Printf("Total execution time: %v\n", elapsed)
+	printResultsTable(results, elapsed, *debug)
+}
+
+func printResultsTable(results []PuzzleResult, totalTime time.Duration, debug bool) {
+	if len(results) == 0 {
+		fmt.Println("No puzzles to solve")
+		return
+	}
+
+	// Calculate column widths
+	dayWidth := 3
+	partWidth := 4
+	resultWidth := 10
+	timeWidth := 12
+	statusWidth := 6
+
+	for _, r := range results {
+		if len(fmt.Sprintf("%d", r.Result)) > resultWidth-2 {
+			resultWidth = len(fmt.Sprintf("%d", r.Result)) + 2
+		}
+		if len(r.Duration.String()) > timeWidth-2 {
+			timeWidth = len(r.Duration.String()) + 2
+		}
+	}
+
+	// Print table header
+	fmt.Println(strings.Repeat("─", dayWidth+partWidth+resultWidth+timeWidth+statusWidth+16))
+	fmt.Printf("│ %-*s │ %-*s │ %-*s │ %-*s │ %-*s │\n",
+		dayWidth, "Day", partWidth, "Part", resultWidth, "Result", timeWidth, "Time", statusWidth, "Status")
+	fmt.Println(strings.Repeat("─", dayWidth+partWidth+resultWidth+timeWidth+statusWidth+16))
+
+	// Print results
+	for _, r := range results {
+		if r.Error != nil {
+			fmt.Printf("│ %*d │ %*d │ %-*s │ %-*s │ %-*s │\n",
+				dayWidth, r.Day, partWidth, r.Part, resultWidth, "ERROR", timeWidth, r.Duration.String(), statusWidth, "✗")
+			if debug {
+				fmt.Printf("  Error: %v\n", r.Error)
+			}
+		} else {
+			fmt.Printf("│ %*d │ %*d │ %*d │ %-*s │ %-*s │\n",
+				dayWidth, r.Day, partWidth, r.Part, resultWidth, r.Result, timeWidth, r.Duration.String(), statusWidth, "✓")
+		}
+	}
+
+	fmt.Println(strings.Repeat("─", dayWidth+partWidth+resultWidth+timeWidth+statusWidth+16))
+
+	// Print summary
+	solved := 0
+	for _, r := range results {
+		if r.Error == nil {
+			solved++
+		}
+	}
+	fmt.Printf("Summary: %d/%d puzzles solved in %v\n", solved, len(results), totalTime)
 }
 
 func validateDay(day int) error {
@@ -112,59 +178,80 @@ func showHelp() {
 	fmt.Println("  ./advent-of-code-2024 -debug             # Run all puzzles with debug output")
 }
 
-func runSpecificDayPart(day, part int, debug bool) {
-	if debug {
-		log.Debug().Int("day", day).Int("part", part).Msg("Running specific day and part")
-	}
-
+func runSpecificDayPart(day, part int, debug bool) []PuzzleResult {
+	start := time.Now()
 	result, err := solveDayPart(day, part)
-	if err != nil {
-		fmt.Printf("Day %02d Part %d: Error - %v\n", day, part, err)
-		return
-	}
+	duration := time.Since(start)
 
-	fmt.Printf("Day %02d Part %d: %d\n", day, part, result)
+	return []PuzzleResult{{
+		Day:      day,
+		Part:     part,
+		Result:   result,
+		Duration: duration,
+		Error:    err,
+	}}
 }
 
-func runSpecificDay(day int, debug bool) {
-	if debug {
-		log.Debug().Int("day", day).Msg("Running specific day")
-	}
+func runSpecificDay(day int, debug bool) []PuzzleResult {
+	var results []PuzzleResult
 
+	// Run part 1
+	start1 := time.Now()
 	result1, err1 := solveDayPart(day, MinPart)
-	if err1 != nil {
-		fmt.Printf("Day %02d Part 1: Error - %v\n", day, err1)
-	} else {
-		fmt.Printf("Day %02d Part 1: %d\n", day, result1)
-	}
+	duration1 := time.Since(start1)
 
+	results = append(results, PuzzleResult{
+		Day:      day,
+		Part:     MinPart,
+		Result:   result1,
+		Duration: duration1,
+		Error:    err1,
+	})
+
+	// Run part 2
+	start2 := time.Now()
 	result2, err2 := solveDayPart(day, MaxPart)
-	if err2 != nil {
-		fmt.Printf("Day %02d Part 2: Error - %v\n", day, err2)
-	} else {
-		fmt.Printf("Day %02d Part 2: %d\n", day, result2)
-	}
+	duration2 := time.Since(start2)
+
+	results = append(results, PuzzleResult{
+		Day:      day,
+		Part:     MaxPart,
+		Result:   result2,
+		Duration: duration2,
+		Error:    err2,
+	})
+
+	return results
 }
 
-func runAllDays(debug bool) {
-	if debug {
-		log.Debug().Msg("Running all implemented days")
-	}
-
-	puzzlesSolved := 0
+func runAllDays(debug bool) []PuzzleResult {
+	var results []PuzzleResult
 	for day := MinDay; day <= MaxDay; day++ {
+		// Check if input file exists before running any parts for this day
+		inputFile := getInputFilePath(day)
+		if _, err := os.Stat(inputFile); os.IsNotExist(err) {
+			continue // Skip this day entirely if no input file exists
+		}
+
 		for part := MinPart; part <= MaxPart; part++ {
+			start := time.Now()
 			result, err := solveDayPart(day, part)
-			if err == nil {
-				fmt.Printf("Day %02d Part %d: %d\n", day, part, result)
-				puzzlesSolved++
+			duration := time.Since(start)
+
+			// Only add results for implemented puzzles (those that don't return "puzzle not implemented")
+			if err == nil || (err != nil && err.Error() != "puzzle not implemented") {
+				results = append(results, PuzzleResult{
+					Day:      day,
+					Part:     part,
+					Result:   result,
+					Duration: duration,
+					Error:    err,
+				})
 			}
 		}
 	}
 
-	if puzzlesSolved == 0 {
-		fmt.Println("No puzzles to solve")
-	}
+	return results
 }
 
 func solveDayPart(day, part int) (int, error) {
@@ -195,6 +282,8 @@ func solveDayPart(day, part int) (int, error) {
 		return day05.SolvePart1(inputFile)
 	case day == 5 && part == 2:
 		return day05.SolvePart2(inputFile)
+	case day == 6 && part == 1:
+		return day06.SolvePart1(inputFile)
 	default:
 		return 0, fmt.Errorf("puzzle not implemented")
 	}
