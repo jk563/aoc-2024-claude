@@ -79,3 +79,19 @@
 ## Usage
 Run `just` without arguments to see all available commands.
 
+# Project Structure
+
+Current implementation status:
+- **Root executable**: `main.go` with CLI interface supporting day/part selection and debug mode
+- **Day structure**: Each day in `internal/dayXX/` with:
+  - `dayXX.go` - Solution implementations
+  - `dayXX_test.go` - Unit tests
+  - `example-input.txt` - Example puzzle input
+  - `puzzle-input.txt` - Actual puzzle input
+  - `tasks.md` - Implementation planning tasks
+- **Dependencies**: Only `zerolog` for logging/debugging
+- **Build system**: Uses `justfile` for common tasks
+- **Testing**: Full unit test coverage with TDD approach
+
+The main executable dispatches to day-specific packages and provides formatted output with timing and success tracking.
+

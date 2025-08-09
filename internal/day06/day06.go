@@ -28,6 +28,12 @@ type Guard struct {
 	Direction Direction
 }
 
+// GuardState represents a guard's state (position + direction) for loop detection
+type GuardState struct {
+	Position  Position
+	Direction Direction
+}
+
 // Grid represents the lab map
 type Grid struct {
 	Cells [][]rune
@@ -186,4 +192,121 @@ func SolvePart1(filename string) (int, error) {
 	}
 
 	return simulatePatrol(grid, guard), nil
+}
+
+// getPatrolPath simulates the original patrol and returns all positions visited
+func getPatrolPath(grid *Grid, guard *Guard) map[Position]bool {
+	visited := make(map[Position]bool)
+	currentGuard := *guard
+
+	for {
+		// Mark current position as visited
+		visited[currentGuard.Position] = true
+
+		// Get next position in current direction
+		nextPos := getNextPosition(currentGuard.Position, currentGuard.Direction)
+
+		// Check if next position is out of bounds (guard leaves the area)
+		if !isInBounds(grid, nextPos) {
+			break
+		}
+
+		// Check if next position has obstacle
+		if isObstacle(grid, nextPos) {
+			// Turn right and stay at current position
+			currentGuard.Direction = turnRight(currentGuard.Direction)
+		} else {
+			// Move forward to next position
+			currentGuard.Position = nextPos
+		}
+	}
+
+	return visited
+}
+
+// simulatePatrolWithLoopDetection simulates the guard's patrol and returns:
+// - true if the guard gets stuck in a loop
+// - false if the guard leaves the mapped area
+func simulatePatrolWithLoopDetection(grid *Grid, guard *Guard) bool {
+	visitedStates := make(map[GuardState]bool)
+	currentGuard := *guard
+	
+	for {
+		// Create current state
+		state := GuardState{
+			Position:  currentGuard.Position,
+			Direction: currentGuard.Direction,
+		}
+		
+		// Check if we've seen this state before (loop detected)
+		if visitedStates[state] {
+			return true
+		}
+		
+		// Mark current state as visited
+		visitedStates[state] = true
+		
+		// Get next position in current direction
+		nextPos := getNextPosition(currentGuard.Position, currentGuard.Direction)
+		
+		// Check if next position is out of bounds (guard leaves the area)
+		if !isInBounds(grid, nextPos) {
+			return false
+		}
+		
+		// Check if next position has obstacle
+		if isObstacle(grid, nextPos) {
+			// Turn right and stay at current position
+			currentGuard.Direction = turnRight(currentGuard.Direction)
+		} else {
+			// Move forward to next position
+			currentGuard.Position = nextPos
+		}
+	}
+}
+
+// SolvePart2 solves part 2 of the Day 6 puzzle by finding all positions where
+// placing a single new obstacle would cause the guard to get stuck in a loop.
+func SolvePart2(filename string) (int, error) {
+	grid, err := parseInput(filename)
+	if err != nil {
+		return 0, err
+	}
+
+	guard, err := findGuard(grid)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get all positions visited in the original patrol path
+	patrolPath := getPatrolPath(grid, guard)
+	guardStartPos := guard.Position
+	loopPositions := 0
+
+	// Only try placing obstacles at positions the guard would visit
+	for pos := range patrolPath {
+		// Skip if position is the guard's starting position
+		if pos == guardStartPos {
+			continue
+		}
+
+		// Skip if position already has an obstacle (shouldn't happen in normal patrol)
+		if grid.Cells[pos.Row][pos.Col] == '#' {
+			continue
+		}
+
+		// Temporarily place obstacle
+		originalCell := grid.Cells[pos.Row][pos.Col]
+		grid.Cells[pos.Row][pos.Col] = '#'
+
+		// Test if this creates a loop
+		if simulatePatrolWithLoopDetection(grid, guard) {
+			loopPositions++
+		}
+
+		// Restore original cell
+		grid.Cells[pos.Row][pos.Col] = originalCell
+	}
+
+	return loopPositions, nil
 }

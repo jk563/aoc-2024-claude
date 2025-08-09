@@ -284,6 +284,8 @@ func solveDayPart(day, part int) (int, error) {
 		return day05.SolvePart2(inputFile)
 	case day == 6 && part == 1:
 		return day06.SolvePart1(inputFile)
+	case day == 6 && part == 2:
+		return day06.SolvePart2(inputFile)
 	default:
 		return 0, fmt.Errorf("puzzle not implemented")
 	}

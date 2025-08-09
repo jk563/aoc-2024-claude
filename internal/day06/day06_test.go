@@ -166,3 +166,45 @@ func TestSolvePart1(t *testing.T) {
 		t.Errorf("Expected %d, got %d", expectedResult, result)
 	}
 }
+
+func TestSimulatePatrolWithLoopDetection(t *testing.T) {
+	grid, err := parseInput("example-input.txt")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	guard, err := findGuard(grid)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Test normal patrol (should not loop)
+	hasLoop := simulatePatrolWithLoopDetection(grid, guard)
+	if hasLoop {
+		t.Errorf("Expected no loop in normal patrol, but loop detected")
+	}
+
+	// Test with manually placed obstacle that should create a loop
+	// Place obstacle at position (6, 3) which according to the problem should create a loop
+	grid.Cells[6][3] = '#'
+	hasLoop = simulatePatrolWithLoopDetection(grid, guard)
+	if !hasLoop {
+		t.Errorf("Expected loop with obstacle at (6,3), but no loop detected")
+	}
+	
+	// Restore original state
+	grid.Cells[6][3] = '.'
+}
+
+func TestSolvePart2(t *testing.T) {
+	result, err := SolvePart2("example-input.txt")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// From the problem example, there should be 6 positions that create loops
+	expectedResult := 6
+	if result != expectedResult {
+		t.Errorf("Expected %d positions that create loops, got %d", expectedResult, result)
+	}
+}
