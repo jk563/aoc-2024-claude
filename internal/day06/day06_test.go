@@ -208,3 +208,4 @@ func TestSolvePart2(t *testing.T) {
 		t.Errorf("Expected %d positions that create loops, got %d", expectedResult, result)
 	}
 }
+

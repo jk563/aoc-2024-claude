@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 // Position represents a coordinate on the grid
@@ -267,6 +269,7 @@ func simulatePatrolWithLoopDetection(grid *Grid, guard *Guard) bool {
 
 // SolvePart2 solves part 2 of the Day 6 puzzle by finding all positions where
 // placing a single new obstacle would cause the guard to get stuck in a loop.
+// Uses parallel processing for optimal performance.
 func SolvePart2(filename string) (int, error) {
 	grid, err := parseInput(filename)
 	if err != nil {
@@ -281,31 +284,70 @@ func SolvePart2(filename string) (int, error) {
 	// Get all positions visited in the original patrol path
 	patrolPath := getPatrolPath(grid, guard)
 	guardStartPos := guard.Position
-	loopPositions := 0
 
-	// Only try placing obstacles at positions the guard would visit
+	// Collect positions to test (excluding starting position)
+	var positions []Position
 	for pos := range patrolPath {
-		// Skip if position is the guard's starting position
-		if pos == guardStartPos {
-			continue
+		if pos != guardStartPos && grid.Cells[pos.Row][pos.Col] != '#' {
+			positions = append(positions, pos)
 		}
+	}
 
-		// Skip if position already has an obstacle (shouldn't happen in normal patrol)
-		if grid.Cells[pos.Row][pos.Col] == '#' {
-			continue
-		}
+	// Set up worker pool - optimal performance at ~15x CPU count
+	numWorkers := runtime.NumCPU() * 15
+	if numWorkers > len(positions) {
+		numWorkers = len(positions)
+	}
 
-		// Temporarily place obstacle
-		originalCell := grid.Cells[pos.Row][pos.Col]
-		grid.Cells[pos.Row][pos.Col] = '#'
+	jobs := make(chan Position, len(positions))
+	results := make(chan bool, len(positions))
 
-		// Test if this creates a loop
-		if simulatePatrolWithLoopDetection(grid, guard) {
+	// Start workers
+	var wg sync.WaitGroup
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Each worker needs its own copy of the grid to avoid race conditions
+			workerGrid := &Grid{Cells: make([][]rune, len(grid.Cells))}
+			for i, row := range grid.Cells {
+				workerGrid.Cells[i] = make([]rune, len(row))
+				copy(workerGrid.Cells[i], row)
+			}
+
+			for pos := range jobs {
+				// Temporarily place obstacle
+				originalCell := workerGrid.Cells[pos.Row][pos.Col]
+				workerGrid.Cells[pos.Row][pos.Col] = '#'
+
+				// Test if this creates a loop
+				hasLoop := simulatePatrolWithLoopDetection(workerGrid, guard)
+				results <- hasLoop
+
+				// Restore original cell
+				workerGrid.Cells[pos.Row][pos.Col] = originalCell
+			}
+		}()
+	}
+
+	// Send jobs
+	for _, pos := range positions {
+		jobs <- pos
+	}
+	close(jobs)
+
+	// Wait for workers to finish
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	loopPositions := 0
+	for hasLoop := range results {
+		if hasLoop {
 			loopPositions++
 		}
-
-		// Restore original cell
-		grid.Cells[pos.Row][pos.Col] = originalCell
 	}
 
 	return loopPositions, nil
