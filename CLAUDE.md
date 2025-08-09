@@ -47,8 +47,8 @@
 - Part 2 of each day may require refactoring part 1, and / or creating reusable functions that both use
 - Do NOT use reflection
 - Only add imports as they are used
-- ALWAYS write tests first for TDD
-- NO tests are required for data structures
+- ALWAYS write tests first for TDD of function implementations
+- DO NOT write tests are for data structures
 
 # Comman Commands (justfile)
 

@@ -14,6 +14,7 @@ import (
 	"advent-of-code-2024/internal/day04"
 	"advent-of-code-2024/internal/day05"
 	"advent-of-code-2024/internal/day06"
+	"advent-of-code-2024/internal/day07"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -286,6 +287,10 @@ func solveDayPart(day, part int) (int, error) {
 		return day06.SolvePart1(inputFile)
 	case day == 6 && part == 2:
 		return day06.SolvePart2(inputFile)
+	case day == 7 && part == 1:
+		return day07.SolvePart1(inputFile)
+	case day == 7 && part == 2:
+		return day07.SolvePart2(inputFile)
 	default:
 		return 0, fmt.Errorf("puzzle not implemented")
 	}
